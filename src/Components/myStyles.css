@@ -417,12 +417,25 @@ input:focus {
   .sb-search {
     display: none;
   }
-  .sb-conversations {
-    display: none;
+
+  .sidebar-container{
+flex: 1;
+flex-direction: row;
+width: 100%;
+justify-content: center;
+
+
   }
+
+
+  .sb-conversations {
+    width: 100%;
+  }
+
+
   .sb-header {
     flex-direction: column;
-    flex: 1;
+    flex: 0.3;
     width: min-content;
   }
   .other-icons {
@@ -431,11 +444,68 @@ input:focus {
   .chatArea-container {
     flex: 1;
   }
-  .sidebar-container {
+  /* .sidebar-container {
     flex: 0;
-  }
+  } */
   .main-container {
     height: 100vh;
     width: 100vw;
+    
+  }
+
+  .welcome-container{
+    display: none;
+  }
+  .chatArea-container{
+    position: absolute;
+    background-color: white;
+    width: 75%;
+    left: 25%;
+    top: 1.6%;
+    height: 96.9%;
+    border-radius: 20px;
+  }
+
+  .list-container{
+    position: absolute;
+    background-color: white;
+    width: 75%;
+    left: 25%;
+    top: 1.6%;
+    height: 96.9%;
+    border-radius: 20px;
+  }
+
+  .createGroups-container{
+    position: absolute;
+    width: 72%;
+    left: 25%;
+    height: 96.9%;
+    
+    background-color: #ffffff;
+    border-radius: 20px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .createGroups-container input{
+    background-color: rgba(0, 0, 0, 0.141);
+    padding: 20px;
+    border-radius: 30px;
+    font-size: 15px;
+    width: 80%;
+    height: 40px;
+  }
+
+  .image-container{
+    display: none;
+  }
+
+  .login-box{
+    flex:1;
+  }
+
+  .login-text{
+    font-size: 17px;
   }
 }
