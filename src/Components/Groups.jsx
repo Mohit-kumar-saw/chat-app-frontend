@@ -10,6 +10,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { refreshSidebarFun } from "../Features/refreshSidebar";
 import { myContext } from "./MainContainer";
+import { BASE_URL } from "../Url";
 
 function Groups() {
   const { refresh, setRefresh } = useContext(myContext);
@@ -35,7 +36,7 @@ function Groups() {
     };
 
     axios
-      .get("http://localhost:8080/chat/fetchGroups", config)
+      .get(`${BASE_URL}/chat/fetchGroups`, config)
       .then((response) => {
         console.log("Group Data from API ", response.data);
         setGroups(response.data);
@@ -56,7 +57,7 @@ function Groups() {
 
     axios
       .post(
-        "http://localhost:8080/chat/",
+        `${BASE_URL}/chat/`,
         {
           userId: user._id,
           groupId: groupId,

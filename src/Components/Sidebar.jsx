@@ -114,34 +114,38 @@ function Sidebar() {
         />
       </div>
       <div className={"sb-conversations" + (lightTheme ? "" : " dark dark-border")}>
-        {conversations.map((conversation, index) => {
-          return (
-            <div
-              key={index}
-              className={"conversation-container" + (lightTheme ? "" : " dark list")}
-              onClick={() => {
-                navigate(
-                  "chat/" + conversation._id + "&" + conversation.users[1].name
+      {conversations && conversations.map((conversation, index) => {
+  const otherUser = conversation.users.find(user => user._id !== userData.data._id);
+  const otherUserName = otherUser ? otherUser.name : 'Unknown User';
+  return (
+    <div
+      key={index}
+      className={"conversation-container" + (lightTheme ? "" : " dark list")}
+      onClick={() => {
+  navigate(
+    "chat/" + conversation._id + "&" + (conversation.isGroupChat ? conversation.chatName : otherUserName)
+  )
 
-                );
-              }}
-            >
-              <p className={"con-icon" + (lightTheme ? "" : " dark icon-dark")}>
-                {/* {conversation.users[1].name[0]} */}
-                u
-              </p>
-              <p className={"con-title" + (lightTheme ? "" : " dark title")}>
-                {conversation.isGroupChat ? conversation.chatName : conversation.users[1].name}
-              </p>
-              <p className={"con-lastMessage" + (lightTheme ? "" : " dark-last-message ")}>
-                {conversation.latestMessage ? conversation.latestMessage.content : "No previous Messages, click here to start a new chat"}
-              </p>
-            </div>
-          );
-        })}
+      }}
+    >
+      <p className={"con-icon" + (lightTheme ? "" : " dark icon-dark")}>
+        {otherUserName[0]}
+      </p>
+      <p className={"con-title" + (lightTheme ? "" : " dark title")}>
+  {conversation.isGroupChat ? conversation.chatName : otherUserName}
+</p>
+      <p className={"con-lastMessage" + (lightTheme ? "" : " dark-last-message ")}>
+        {conversation.latestMessage ? conversation.latestMessage.content : "No previous Messages, click here to start a new chat"}
+      </p>
+    </div>
+  );
+})}
+
+
       </div>
     </div>
   );
 }
 
 export default Sidebar;
+
