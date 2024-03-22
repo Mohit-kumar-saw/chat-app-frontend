@@ -10,26 +10,24 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { refreshSidebarFun } from "../Features/refreshSidebar";
 import { myContext } from "./MainContainer";
-import { BASE_URL } from "../Url";
 
 function Groups() {
-  // const [refresh, setRefresh] = useState(true);
   const { refresh, setRefresh } = useContext(myContext);
-
   const lightTheme = useSelector((state) => state.themeKey);
   const dispatch = useDispatch();
-  const [groups, SetGroups] = useState([]);
+  const [groups, setGroups] = useState([]);
   const userData = JSON.parse(localStorage.getItem("userData"));
-  // console.log("Data from LocalStorage : ", userData);
   const nav = useNavigate();
+
   if (!userData) {
     console.log("User not Authenticated");
     nav("/");
+    return null;
   }
 
   const user = userData.data;
+
   useEffect(() => {
-    console.log("Users refreshed : ", user.token);
     const config = {
       headers: {
         Authorization: `Bearer ${user.token}`,
@@ -37,12 +35,43 @@ function Groups() {
     };
 
     axios
-      .get(`${BASE_URL}/chat/fetchGroups`, config)
+      .get("http://localhost:8080/chat/fetchGroups", config)
       .then((response) => {
         console.log("Group Data from API ", response.data);
-        SetGroups(response.data);
+        setGroups(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching groups:", error);
       });
   }, [refresh]);
+
+  const handleCreateChat = (groupId,isgroupChat) => {
+    console.log(groupId);
+    console.log(user._id);
+    const config = {
+      headers: {
+        Authorization: `Bearer ${user.token}`,
+      },
+    };
+
+    axios
+      .post(
+        "http://localhost:8080/chat/",
+        {
+          userId: user._id,
+          groupId: groupId,
+          isGroupChat: isgroupChat
+        },
+        config
+      )
+      .then((response) => {
+        console.log("Chat created:", response.data);
+        dispatch(refreshSidebarFun());
+      })
+      .catch((error) => {
+        console.error("Error creating chat:", error);
+      });
+  };
 
   return (
     <AnimatePresence>
@@ -83,37 +112,27 @@ function Groups() {
           />
         </div>
         <div className="ug-list">
-          {groups.map((group, index) => {
-            return (
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                className={"list-tem" + (lightTheme ? "" : " dark list dark-border")}
-                key={index}
-                onClick={() => {
-                  console.log("Creating chat with group", group.chatName);
-                  const config = {
-                    headers: {
-                      Authorization: `Bearer ${userData.data.token}`,
-                    },
-                  };
-                  axios.post(
-                    `${BASE_URL}/chat`,
-                    {
-                      userId: user._id,
-                    },
-                    config
-                  );
-                  dispatch(refreshSidebarFun());
-                }}
-              >
-                <p className={"con-icon" + (lightTheme ? "" : " dark icon-dark")}>T</p>
-                <p className={"con-title" + (lightTheme ? "" : " dark title")}>
-                  {group.chatName}
-                </p>
-              </motion.div>
-            );
-          })}
+          {groups.map((group, index) => (
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className={
+                "list-tem" + (lightTheme ? "" : " dark list dark-border")
+              }
+              key={index}
+              onClick={() => {
+                handleCreateChat(group._id,group.isGroupChat);
+                console.log(group._id);
+              }}
+            >
+              <p className={"con-icon" + (lightTheme ? "" : " dark icon-dark")}>
+                T
+              </p>
+              <p className={"con-title" + (lightTheme ? "" : " dark title")}>
+                {group.chatName}
+              </p>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
     </AnimatePresence>
