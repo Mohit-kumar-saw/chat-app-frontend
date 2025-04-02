@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import image from "../image/img.png"
-import { Alert, Button, TextField } from '@mui/material'
+import { Alert, Button, TextField, Typography, Box } from '@mui/material'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BASE_URL } from '../Url';
@@ -11,7 +11,6 @@ const SingUp = () => {
     const [signUpStatus, setSignUpStatus] = useState({});
     const [alert, setAlert] = useState(false);
 
-  
     const navigate = useNavigate();
   
     const changeHandle = (e) => {
@@ -22,66 +21,87 @@ const SingUp = () => {
       setLoading(true);
       try {
         const response = await axios.post(`${BASE_URL}/user/register`, data);
-        localStorage.setItem("userData",JSON.stringify({ response}) ); // Store token in local storage
+        localStorage.setItem("userData",JSON.stringify({ response}) );
         setLoading(false);
-        setSignUpStatus({message: "Successfully SingUp"})
+        setSignUpStatus({message: "Successfully Signed Up"})
         setAlert(true)
         navigate("/app/welcome");
-        
-        
       } catch (error) {
-        setSignUpStatus({ message:  "Registration failed" });
+        setSignUpStatus({ message: "Registration failed" });
         console.log(error);
         setLoading(false);
-        
       }
     };
   
     return (
       <div className="login-container">
         <div className="image-container">
-          <img src={image} alt="" />
+          <img src={image} alt="Welcome" className="welcome-logo" />
         </div>
         <div className="login-box">
-          <h3>Create Your Account</h3>
+          <Typography variant="h4" className="login-text">
+            Create Account
+          </Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2, textAlign: 'center' }}>
+            Join ChatSphere today
+          </Typography>
           <TextField
             className="input"
-            id="standard-basic"
-            label="Enter User Name"
+            label="Username"
             variant="outlined"
+            color="secondary"
             name="name"
             onChange={changeHandle}
+            fullWidth
+            size="small"
           />
           <TextField
             className="input"
-            id="standard-basic"
-            label="Enter Email"
+            label="Email"
             variant="outlined"
+            color="secondary"
             name="email"
             onChange={changeHandle}
+            fullWidth
+            size="small"
           />
           <TextField
             className="input"
-            id="outline-password-input"
             label="Password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
+            variant="outlined"
+            color="secondary"
             name="password"
             onChange={changeHandle}
+            fullWidth
+            size="small"
           />
-          {signUpStatus.message && <Alert severity="error">{signUpStatus.message}</Alert>}
-          {alert && <Alert severity="success">{signUpStatus.message}</Alert>}
-
-          <Button variant="outlined" onClick={signUpHandler} disabled={loading}>
-            {loading ? "Loading..." : "SignUp"}
+          {signUpStatus.message && !alert && (
+            <Alert severity="error" sx={{ mt: 1 }}>{signUpStatus.message}</Alert>
+          )}
+          {alert && (
+            <Alert severity="success" sx={{ mt: 1 }}>{signUpStatus.message}</Alert>
+          )}
+          <Button 
+            variant="outlined" 
+            color="secondary"
+            onClick={signUpHandler} 
+            disabled={loading}
+            fullWidth
+            size="medium"
+          >
+            {loading ? "Creating Account..." : "Create Account"}
           </Button>
-          <p>
-            Already have an Account? <a href="/">Log In</a>
-          </p>
+          <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+            <Typography variant="body2" color="textSecondary">
+              Already have an Account?{" "}
+              <a href="/" className="hyper">Sign In</a>
+            </Typography>
+          </Box>
         </div>
       </div>
     );
   };
-  
   
 export default SingUp;

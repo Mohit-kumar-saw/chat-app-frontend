@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import logo from "../image/img.png";
-import { Backdrop, Button, CircularProgress, TextField } from "@mui/material";
+import { Backdrop, Button, CircularProgress, TextField, Typography, Box } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Toaster from "./Toaster";
@@ -162,15 +162,22 @@ function Login() {
         </div>
         {showlogin ? (
           <div className="login-box">
-            <p className="login-text">Login to your Account</p>
+            <Typography variant="h4" className="login-text">
+              Welcome Back
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2, textAlign: 'center' }}>
+              Sign in to continue to ChatSphere
+            </Typography>
             <TextField
               onChange={changeHandler}
-              id="standard-basic"
-              label="Enter Username or Email"
+              className="input"
+              label="Username or Email"
               variant="outlined"
               color="secondary"
               name="username"
               value={data.username}
+              fullWidth
+              size="small"
               onKeyDown={(event) => {
                 if (event.code === "Enter") {
                   loginHandler();
@@ -179,13 +186,15 @@ function Login() {
             />
             <TextField
               onChange={changeHandler}
-              id="outlined-password-input"
+              className="input"
               label="Password"
               type="password"
               autoComplete="current-password"
               color="secondary"
               name="password"
               value={data.password}
+              fullWidth
+              size="small"
               onKeyDown={(event) => {
                 if (event.code === "Enter") {
                   loginHandler();
@@ -197,82 +206,97 @@ function Login() {
               color="secondary"
               onClick={loginHandler}
               disabled={loading}
+              fullWidth
+              size="medium"
             >
-              Login
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
-            <p>
-              Don't have an Account?{" "}
-              <span
-                className="hyper"
-                onClick={() => {
-                  setShowLogin(false);
-                  setData({ username: "", email: "", password: "" });
-                }}
-              >
-                Sign Up
-              </span>
-            </p>
+            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+              <Typography variant="body2" color="textSecondary">
+                Don't have an Account?{" "}
+                <span
+                  className="hyper"
+                  onClick={() => {
+                    setShowLogin(false);
+                    setData({ username: "", email: "", password: "" });
+                  }}
+                >
+                  Sign Up
+                </span>
+              </Typography>
+            </Box>
           </div>
         ) : (
           <div className="login-box">
-            <p className="login-text">Create your Account</p>
+            <Typography variant="h4" className="login-text">
+              Create Account
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2, textAlign: 'center' }}>
+              Join ChatSphere today
+            </Typography>
             <TextField
               onChange={changeHandler}
-              id="standard-basic"
-              label="Enter Username"
+              className="input"
+              label="Username"
               variant="outlined"
               color="secondary"
               name="username"
               value={data.username}
+              fullWidth
+              size="small"
             />
             <TextField
               onChange={changeHandler}
-              id="standard-basic"
-              label="Enter Email"
+              className="input"
+              label="Email"
               variant="outlined"
               color="secondary"
               name="email"
               value={data.email}
+              fullWidth
+              size="small"
             />
             <TextField
               onChange={changeHandler}
-              id="outlined-password-input"
+              className="input"
               label="Password"
               type="password"
               autoComplete="new-password"
               color="secondary"
               name="password"
               value={data.password}
+              fullWidth
+              size="small"
             />
             <Button
               variant="outlined"
               color="secondary"
               onClick={signUpHandler}
               disabled={loading}
+              fullWidth
+              size="medium"
             >
-              Sign Up
+              {loading ? "Creating Account..." : "Create Account"}
             </Button>
-            <p>
-              Already have an Account?{" "}
-              <span
-                className="hyper"
-                onClick={() => {
-                  setShowLogin(true);
-                  setData({ username: "", email: "", password: "" });
-                }}
-              >
-                Log In
-              </span>
-            </p>
+            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+              <Typography variant="body2" color="textSecondary">
+                Already have an Account?{" "}
+                <span
+                  className="hyper"
+                  onClick={() => {
+                    setShowLogin(true);
+                    setData({ username: "", email: "", password: "" });
+                  }}
+                >
+                  Sign In
+                </span>
+              </Typography>
+            </Box>
           </div>
         )}
       </div>
-      {logInStatus ? (
-        <Toaster key={logInStatus.key} message={logInStatus.msg} />
-      ) : null}
-      {signInStatus ? (
-        <Toaster key={signInStatus.key} message={signInStatus.msg} />
-      ) : null}
+      {logInStatus && <Toaster key={logInStatus.key} message={logInStatus.msg} />}
+      {signInStatus && <Toaster key={signInStatus.key} message={signInStatus.msg} />}
     </>
   );
 }
