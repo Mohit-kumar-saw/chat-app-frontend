@@ -1,25 +1,45 @@
 import React from "react";
 import "./myStyles.css";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
+import moment from 'moment';
 
 function MessageOthers({ props }) {
-  const dispatch = useDispatch();
   const lightTheme = useSelector((state) => state.themeKey);
-  // console.log("message others : ", props);
+  
+  if (!props || !props.sender) {
+    console.warn('Invalid message props:', props);
+    return null;
+  }
+
+  // Get sender name, ensuring we have a valid username
+  const senderName = props.sender.username || "Unknown User";
+  const messageContent = props.content || "";
+  const firstLetter = senderName[0]?.toUpperCase() || "?";
+  
+  // Format timestamp
+  const timestamp = props.createdAt ? moment(props.createdAt).format('h:mm A') : '';
+  
   return (
     <div className={"other-message-container" + (lightTheme ? "" : " dark")}>
-      <div className={"conversation-container" + (lightTheme ? "" : " dark")}>
-        <p className={"con-icon" + (lightTheme ? "" : " dark icon-dark")}>
-          {props.sender.name[0]}
-        </p>
+      <div className={"message-other-content" + (lightTheme ? "" : " dark")}>
+        <div 
+          className={"con-icon" + (lightTheme ? "" : " dark icon-dark")}
+          title={senderName}
+        >
+          {firstLetter}
+        </div>
         <div className={"other-text-content" + (lightTheme ? "" : " dark dark-message")}>
-          <p className={"con-title" + (lightTheme ? "" : " dark dark-message-title")}>
-            {props.sender.name}
+          <p className={"message-sender" + (lightTheme ? "" : " dark")}>
+            {senderName}
           </p>
-          <p className={"con-lastMessage" + (lightTheme ? "" : " dark dark-message-content")}>
-            {props.content}
-          </p>
-          {/* <p className="self-timeStamp">12:00am</p> */}
+          <div className="message-content-wrapper">
+            <p className={"message-content" + (lightTheme ? "" : " dark")}>
+              {messageContent}
+            </p>
+            <div className="message-time-only">
+              <span className="message-time">{timestamp}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

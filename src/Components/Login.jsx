@@ -7,12 +7,11 @@ import Toaster from "./Toaster";
 import { BASE_URL } from "../Url";
 
 function Login() {
-  const [showlogin, setShowLogin] = useState(false);
-  const [data, setData] = useState({ name: "", email: "", password: "" });
+  const [showlogin, setShowLogin] = useState(true);
+  const [data, setData] = useState({ username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
-
-  const [logInStatus, setLogInStatus] = React.useState("");
-  const [signInStatus, setSignInStatus] = React.useState("");
+  const [logInStatus, setLogInStatus] = useState("");
+  const [signInStatus, setSignInStatus] = useState("");
 
   const navigate = useNavigate();
 
@@ -20,10 +19,27 @@ function Login() {
     setData({ ...data, [e.target.name]: e.target.value });
   };
 
-  const loginHandler = async (e) => {
+  const loginHandler = async () => {
     setLoading(true);
-    console.log(data);
     try {
+      if (!data.username?.trim()) {
+        setLogInStatus({
+          msg: "Username is required",
+          key: Math.random(),
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!data.password) {
+        setLogInStatus({
+          msg: "Password is required",
+          key: Math.random(),
+        });
+        setLoading(false);
+        return;
+      }
+
       const config = {
         headers: {
           "Content-type": "application/json",
@@ -31,27 +47,72 @@ function Login() {
       };
 
       const response = await axios.post(
-       `${BASE_URL}/user/login/`,
-        data,
+        `${BASE_URL}/user/login`,
+        {
+          username: data.username.trim(),
+          password: data.password
+        },
         config
       );
-      console.log("Login : ", response);
-      setLogInStatus({ msg: "Success", key: Math.random() });
-      setLoading(false);
-      localStorage.setItem("userData", JSON.stringify(response));
-      navigate("/app/welcome");
+
+      if (response.data?.success) {
+        setLogInStatus({ msg: "Login successful!", key: Math.random() });
+        localStorage.setItem("userData", JSON.stringify(response.data));
+        navigate("/app/welcome");
+      } else {
+        throw new Error(response.data?.message || "Login failed");
+      }
     } catch (error) {
+      console.error("Login error:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Invalid username or password";
       setLogInStatus({
-        msg: "Invalid User name or Password",
+        msg: errorMessage,
         key: Math.random(),
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const signUpHandler = async () => {
     setLoading(true);
     try {
+      if (!data.username?.trim()) {
+        setSignInStatus({
+          msg: "Username is required",
+          key: Math.random(),
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!data.email?.trim()) {
+        setSignInStatus({
+          msg: "Email is required",
+          key: Math.random(),
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!data.password) {
+        setSignInStatus({
+          msg: "Password is required",
+          key: Math.random(),
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (data.password.length < 6) {
+        setSignInStatus({
+          msg: "Password must be at least 6 characters long",
+          key: Math.random(),
+        });
+        setLoading(false);
+        return;
+      }
+
       const config = {
         headers: {
           "Content-type": "application/json",
@@ -59,29 +120,30 @@ function Login() {
       };
 
       const response = await axios.post(
-        `${BASE_URL}/user/register/`,
-        data,
+        `${BASE_URL}/user/register`,
+        {
+          username: data.username.trim(),
+          email: data.email.trim(),
+          password: data.password
+        },
         config
       );
-      console.log(response);
-      setSignInStatus({ msg: "Success", key: Math.random() });
-      navigate("/app/welcome");
-      localStorage.setItem("userData", JSON.stringify(response));
-      setLoading(false);
+
+      if (response.data?.success) {
+        setSignInStatus({ msg: "Registration successful!", key: Math.random() });
+        localStorage.setItem("userData", JSON.stringify(response.data));
+        navigate("/app/welcome");
+      } else {
+        throw new Error(response.data?.message || "Registration failed");
+      }
     } catch (error) {
-      console.log(error);
-      if (error.response.status === 405) {
-        setLogInStatus({
-          msg: "User with this email ID already Exists",
-          key: Math.random(),
-        });
-      }
-      if (error.response.status === 406) {
-        setLogInStatus({
-          msg: "User Name already Taken, Please take another one",
-          key: Math.random(),
-        });
-      }
+      console.error("Registration error:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Registration failed. Please try again.";
+      setSignInStatus({
+        msg: errorMessage,
+        key: Math.random(),
+      });
+    } finally {
       setLoading(false);
     }
   };
@@ -98,19 +160,19 @@ function Login() {
         <div className="image-container">
           <img src={logo} alt="Logo" className="welcome-logo" />
         </div>
-        {showlogin && (
+        {showlogin ? (
           <div className="login-box">
             <p className="login-text">Login to your Account</p>
             <TextField
               onChange={changeHandler}
               id="standard-basic"
-              label="Enter User Name"
+              label="Enter Username or Email"
               variant="outlined"
               color="secondary"
-              name="name"
+              name="username"
+              value={data.username}
               onKeyDown={(event) => {
-                if (event.code == "Enter") {
-                  // console.log(event);
+                if (event.code === "Enter") {
                   loginHandler();
                 }
               }}
@@ -123,9 +185,9 @@ function Login() {
               autoComplete="current-password"
               color="secondary"
               name="password"
+              value={data.password}
               onKeyDown={(event) => {
-                if (event.code == "Enter") {
-                  // console.log(event);
+                if (event.code === "Enter") {
                   loginHandler();
                 }
               }}
@@ -134,96 +196,83 @@ function Login() {
               variant="outlined"
               color="secondary"
               onClick={loginHandler}
+              disabled={loading}
             >
               Login
             </Button>
             <p>
-              Don't have an Account ?{" "}
+              Don't have an Account?{" "}
               <span
                 className="hyper"
                 onClick={() => {
                   setShowLogin(false);
+                  setData({ username: "", email: "", password: "" });
                 }}
               >
                 Sign Up
               </span>
             </p>
-            {logInStatus ? (
-              <Toaster key={logInStatus.key} message={logInStatus.msg} />
-            ) : null}
           </div>
-        )}
-        {!showlogin && (
+        ) : (
           <div className="login-box">
             <p className="login-text">Create your Account</p>
             <TextField
               onChange={changeHandler}
-              id="standard-basic userName"
-              label="Enter User Name"
+              id="standard-basic"
+              label="Enter Username"
               variant="outlined"
               color="secondary"
-              name="name"
-              helperText=""
-              onKeyDown={(event) => {
-                if (event.code == "Enter") {
-                  // console.log(event);
-                  signUpHandler();
-                }
-              }}
+              name="username"
+              value={data.username}
             />
             <TextField
               onChange={changeHandler}
               id="standard-basic"
-              label="Enter Email Address"
+              label="Enter Email"
               variant="outlined"
               color="secondary"
               name="email"
-              onKeyDown={(event) => {
-                if (event.code == "Enter") {
-                  // console.log(event);
-                  signUpHandler();
-                }
-              }}
+              value={data.email}
             />
             <TextField
               onChange={changeHandler}
               id="outlined-password-input"
               label="Password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               color="secondary"
               name="password"
-              onKeyDown={(event) => {
-                if (event.code == "Enter") {
-                  // console.log(event);
-                  signUpHandler();
-                }
-              }}
+              value={data.password}
             />
             <Button
               variant="outlined"
               color="secondary"
               onClick={signUpHandler}
+              disabled={loading}
             >
               Sign Up
             </Button>
             <p>
-              Already have an Account ?
+              Already have an Account?{" "}
               <span
                 className="hyper"
                 onClick={() => {
                   setShowLogin(true);
+                  setData({ username: "", email: "", password: "" });
                 }}
               >
-                Log in
+                Log In
               </span>
             </p>
-            {signInStatus ? (
-              <Toaster key={signInStatus.key} message={signInStatus.msg} />
-            ) : null}
           </div>
         )}
       </div>
+      {logInStatus ? (
+        <Toaster key={logInStatus.key} message={logInStatus.msg} />
+      ) : null}
+      {signInStatus ? (
+        <Toaster key={signInStatus.key} message={signInStatus.msg} />
+      ) : null}
     </>
   );
 }

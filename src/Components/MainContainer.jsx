@@ -2,17 +2,26 @@ import React, { createContext, useState } from "react";
 import "./myStyles.css";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 
-export const myContext = createContext();
+// Initialize the context with default values
+export const myContext = createContext({
+  refresh: false,
+  setRefresh: () => {},
+});
+
 function MainContainer() {
-  const dispatch = useDispatch();
+  const [refresh, setRefresh] = useState(false);
   const lightTheme = useSelector((state) => state.themeKey);
-  const [refresh, setRefresh] = useState(true);
+
+  const contextValue = {
+    refresh,
+    setRefresh,
+  };
 
   return (
     <div className={"main-container" + (lightTheme ? "" : " dark")}>
-      <myContext.Provider value={{ refresh: refresh, setRefresh: setRefresh }}>
+      <myContext.Provider value={contextValue}>
         <Sidebar />
         <Outlet />
       </myContext.Provider>

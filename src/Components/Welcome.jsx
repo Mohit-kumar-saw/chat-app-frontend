@@ -6,12 +6,19 @@ import { useNavigate } from "react-router-dom";
 
 function Welcome() {
   const lightTheme = useSelector((state) => state.themeKey);
-  const userData = JSON.parse(localStorage.getItem("userData"));
-  console.log(userData);
-  const nav = useNavigate();
+  const navigate = useNavigate();
+  
+  const userData = React.useMemo(() => {
+    const data = localStorage.getItem("userData");
+    if (!data) {
+      navigate("/");
+      return null;
+    }
+    return JSON.parse(data);
+  }, [navigate]);
+
   if (!userData) {
-    console.log("User not Authenticated");
-    nav("/");
+    return null;
   }
 
   return (
@@ -23,7 +30,7 @@ function Welcome() {
         alt="Logo"
         className="welcome-logo"
       />
-      <b>Hi , {userData.data.name} 👋</b>
+      <b>Hi, {userData.data.username} 👋</b>
       <p>View and text directly to people present in the chat Rooms.</p>
     </div>
   );
