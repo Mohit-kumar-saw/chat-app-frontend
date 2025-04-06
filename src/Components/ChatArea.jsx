@@ -37,6 +37,7 @@ import "./myStyles.css";
 import io from "socket.io-client";
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import EmojiPicker from 'emoji-picker-react';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const SOCKET_URL = BASE_URL;
 
@@ -62,6 +63,8 @@ function ChatArea() {
   const [groupMembers, setGroupMembers] = useState([]);
   const [chatInfoLoading, setChatInfoLoading] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
+  const [messagesLoading, setMessagesLoading] = useState(true);
 
   const userData = React.useMemo(() => {
     const data = localStorage.getItem("userData");
@@ -72,62 +75,19 @@ function ChatArea() {
   const isAdmin = chatInfo?.groupAdmin?._id === userData?.data?._id;
   const isGroupChat = chatInfo?.isGroupChat;
 
-  // Fetch messages
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!chat_id || !userData?.data?.token) return;
-
-      try {
-        setLoading(true);
-        const config = {
-          headers: {
-            Authorization: `Bearer ${userData.data.token}`,
-          },
-        };
-
-        const response = await axios.get(`${BASE_URL}/message/${chat_id}`, config);
-        
-        if (!response.data) {
-          throw new Error("No messages received from server");
-        }
-
-        // Validate and transform messages
-        const validMessages = response.data
-          .filter(msg => msg && msg.content && msg.sender)
-          .map(msg => ({
-            ...msg,
-            sender: {
-              ...msg.sender,
-              username: msg.sender.username || "Unknown User"
-            }
-          }));
-
-        setAllMessages(validMessages);
-        scrollToBottom();
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
-  }, [chat_id, userData?.data?.token]);
-
-  // Fetch chat info
+  // Fetch chat info first
   useEffect(() => {
     const fetchChatInfo = async () => {
       if (!chat_id || !userData?.data?.token) return;
 
       try {
-        setChatInfoLoading(true);
         const config = {
           headers: {
             Authorization: `Bearer ${userData.data.token}`,
           },
         };
 
-        // Get all chats and find the specific one we need
+        // Get chat info first
         const response = await axios.get(`${BASE_URL}/chat`, config);
         if (response.data) {
           const currentChat = response.data.find(chat => chat._id === chat_id);
@@ -140,13 +100,57 @@ function ChatArea() {
         }
       } catch (error) {
         console.error("Error fetching chat info:", error);
-      } finally {
-        setChatInfoLoading(false);
       }
     };
 
     fetchChatInfo();
   }, [chat_id, userData?.data?.token, refresh]);
+
+  // Fetch messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!chat_id || !userData?.data?.token) return;
+
+      try {
+        setMessagesLoading(true);
+        const config = {
+          headers: {
+            Authorization: `Bearer ${userData.data.token}`,
+          },
+        };
+
+        const response = await axios.get(`${BASE_URL}/message/${chat_id}`, config);
+        
+        if (!response.data) {
+          throw new Error("No messages received");
+        }
+
+        // Process messages in batches for better performance
+        const processMessages = () => {
+          const validMessages = response.data
+            .filter(msg => msg && msg.content && msg.sender)
+            .map(msg => ({
+              ...msg,
+              sender: {
+                ...msg.sender,
+                username: msg.sender.username || "Unknown User"
+              }
+            }));
+          setAllMessages(validMessages);
+          scrollToBottom();
+        };
+
+        // Use requestAnimationFrame for smoother UI updates
+        requestAnimationFrame(processMessages);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      } finally {
+        setMessagesLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [chat_id, userData?.data?.token]);
 
   // Socket.IO setup
   useEffect(() => {
@@ -182,10 +186,37 @@ function ChatArea() {
     };
   }, [chat_id, userData]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Add or remove visible class based on chat_id
+    const chatArea = document.querySelector('.chatArea-container');
+    const sidebar = document.querySelector('.sidebar-container');
+    
+    if (chatArea && sidebar && isMobileView) {
+      if (chat_id) {
+        chatArea.classList.add('visible');
+        sidebar.classList.add('hidden');
+      } else {
+        chatArea.classList.remove('visible');
+        sidebar.classList.remove('hidden');
+      }
+    }
+  }, [chat_id, isMobileView]);
+
   const scrollToBottom = () => {
-    setTimeout(() => {
+    if (!messagesEndRef.current) return;
+    
+    requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    });
   };
 
   const sendMessage = async () => {
@@ -234,11 +265,21 @@ function ChatArea() {
       scrollToBottom();
     } catch (error) {
       console.error("Error sending message:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
+      
+      // Handle specific error cases
+      if (error.response?.data?.error === "NOT_MEMBER" || error.response?.data?.error === "NOT_GROUP_MEMBER") {
+        // Redirect to main chat view
+        navigate("/app");
+        
+        // Show error message
+        alert(error.response.data.message);
+      } else {
+        console.error("Error details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+      }
     }
   };
 
@@ -443,6 +484,18 @@ function ChatArea() {
     setMessageContent(text);
   };
 
+  const handleBack = () => {
+    const sidebar = document.querySelector('.sidebar-container');
+    const chatArea = document.querySelector('.chatArea-container');
+    
+    if (sidebar && chatArea) {
+      sidebar.classList.remove('hidden');
+      chatArea.classList.remove('visible');
+    }
+    
+    navigate('/app');
+  };
+
   if (!chat_id) {
     return (
       <div className={"welcome-container" + (lightTheme ? "" : " dark")}>
@@ -455,6 +508,14 @@ function ChatArea() {
     return (
       <div className={"chatArea-container" + (lightTheme ? "" : " dark")}>
       <div className={"chatArea-header" + (lightTheme ? "" : " dark")}>
+        {isMobileView && (
+          <IconButton 
+            className="back-button" 
+            onClick={handleBack}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        )}
         <div className="chat-user-info">
           <div className={"con-icon" + (lightTheme ? "" : " dark")}>
             {chatInfo?.isGroupChat 
@@ -468,7 +529,7 @@ function ChatArea() {
                 : chatInfo?.users?.find(u => u._id !== userData?.data?._id)?.username || "Loading..."}
             </p>
             <p className={"con-timestamp" + (lightTheme ? "" : " dark")}>
-              {loading ? "Loading..." : chatInfo?.isGroupChat ? `${chatInfo?.users?.length || 0} members` : "Online"}
+              {chatInfo?.isGroupChat ? `${chatInfo?.users?.length || 0} members` : "Online"}
             </p>
           </div>
         </div>
@@ -532,8 +593,19 @@ function ChatArea() {
       </div>
 
       <div className={"messages-container" + (lightTheme ? "" : " dark")}>
-        {loading ? (
-          <div className="loading">Loading messages...</div>
+        {messagesLoading ? (
+          <div className="message-skeleton-container">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className={`message-skeleton ${index % 2 === 0 ? 'received' : 'sent'}`}>
+                {index % 2 === 0 && <div className="message-avatar-skeleton skeleton"></div>}
+                <div className="message-content-skeleton">
+                  <div className="message-text-skeleton skeleton"></div>
+                  <div className="message-text-skeleton skeleton"></div>
+                </div>
+                {index % 2 !== 0 && <div className="message-avatar-skeleton skeleton"></div>}
+              </div>
+            ))}
+          </div>
         ) : allMessages.length === 0 ? (
           <div className="no-messages">
             <p>No messages yet</p>
@@ -541,30 +613,18 @@ function ChatArea() {
           </div>
         ) : (
           allMessages.map((message, index) => {
-            if (!message || !message.sender) {
-              console.warn('Invalid message format:', message);
-              return null;
-            }
+            if (!message || !message.sender) return null;
 
             const isSelf = message.sender._id === userData?.data?._id;
-            return isSelf ? (
-              <MessageSelf 
+            const MessageComponent = isSelf ? MessageSelf : MessageOthers;
+            
+            return (
+              <MessageComponent 
                 props={{
                   ...message,
                   sender: {
                     ...message.sender,
-                    username: message.sender.username || userData.data.username
-                  }
-                }} 
-                key={message._id || `msg-${index}`} 
-              />
-            ) : (
-              <MessageOthers 
-                props={{
-                  ...message,
-                  sender: {
-                    ...message.sender,
-                    username: message.sender.username || "Unknown User"
+                    username: message.sender.username || (isSelf ? userData.data.username : "Unknown User")
                   }
                 }} 
                 key={message._id || `msg-${index}`} 
@@ -595,7 +655,7 @@ function ChatArea() {
         </div>
           <input
           type="text"
-          className={"message-input" + (lightTheme ? "" : " dark")}
+          className={"message-input" + (lightTheme ? "" : " input-dark")}
           placeholder="Type a message"
             value={messageContent}
           onChange={(e) => setMessageContent(e.target.value)}
@@ -606,7 +666,7 @@ function ChatArea() {
             }
           }}
         />
-        <IconButton onClick={sendMessage}>
+        <IconButton onClick={sendMessage} style={{ color: lightTheme ? 'blue' : '#fff' }}>
           <SendRoundedIcon />
         </IconButton>
       </div>

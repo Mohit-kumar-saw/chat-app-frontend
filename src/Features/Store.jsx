@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import themeSliceReducer from "./ThemeSlice";
+import themeSliceReducer from "./themeSlice";
 import refreshSidebar from "./refreshSidebar";
 
 export const store = configureStore({

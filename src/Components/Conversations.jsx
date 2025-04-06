@@ -15,32 +15,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import ConversationItem from "./ConversationItem";
 import { toggleTheme } from "../Features/themeSlice";
 
-function Conversations() {
+function Conversations({ searchQuery, onConversationClick }) {
   const lightTheme = useSelector((state) => state.themeKey);
   const dispatch = useDispatch();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const { refresh, setRefresh } = useContext(myContext);
   const navigate = useNavigate();
 
-  // Get user data once on component mount
   const userData = React.useMemo(() => {
     const data = localStorage.getItem("userData");
-    if (!data) {
-      navigate("/");
-      return null;
-    }
-    try {
-      return JSON.parse(data);
-    } catch (err) {
-      console.error("Error parsing userData:", err);
-      localStorage.removeItem("userData");
-      navigate("/");
-      return null;
-    }
-  }, [navigate]);
+    if (!data) return null;
+    return JSON.parse(data);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("userData");
@@ -51,10 +39,17 @@ function Conversations() {
     dispatch(toggleTheme());
   };
 
+  const handleConversationClick = (conversationId, displayName) => {
+    if (onConversationClick) {
+      onConversationClick(conversationId, displayName);
+    } else {
+      navigate(`/app/chat/${conversationId}&${displayName}`);
+    }
+  };
+
   useEffect(() => {
     const fetchConversations = async () => {
       if (!userData?.data?.token) {
-        console.log("No user token found, redirecting to login");
         navigate("/");
         return;
       }
@@ -69,9 +64,7 @@ function Conversations() {
           },
         };
 
-        console.log("Fetching conversations with config:", config);
         const response = await axios.get(`${BASE_URL}/chat`, config);
-        console.log("Raw response:", response);
 
         if (!response.data) {
           throw new Error("No data received from server");
@@ -79,27 +72,18 @@ function Conversations() {
 
         if (Array.isArray(response.data)) {
           const sortedConversations = response.data
-            .filter(chat => chat && chat.users) // Filter out invalid chats
+            .filter(chat => chat && chat.users)
             .sort((a, b) => {
               const timeA = a.latestMessage?.createdAt || a.createdAt;
               const timeB = b.latestMessage?.createdAt || b.createdAt;
               return new Date(timeB) - new Date(timeA);
             });
-          console.log("Processed conversations:", sortedConversations);
           setConversations(sortedConversations);
         } else {
-          throw new Error("Invalid conversations data received");
+          throw new Error("Invalid conversations data");
         }
       } catch (err) {
-        console.error("Error fetching conversations:", err);
-        console.error("Error details:", {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status
-        });
         setError(err.response?.data?.message || "Failed to load conversations");
-        
-        // If token is invalid, redirect to login
         if (err.response?.status === 401) {
           localStorage.removeItem("userData");
           navigate("/");
@@ -112,20 +96,16 @@ function Conversations() {
     fetchConversations();
   }, [refresh, userData, navigate]);
 
-  const filteredConversations = conversations.filter((chat) => {
-    if (!searchQuery) return true;
-    if (!chat || !chat.users) return false;
-    
-    const otherUser = chat.users.find(user => user?._id !== userData?.data?._id);
-    if (!otherUser) return false;
-    
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      otherUser.username?.toLowerCase().includes(searchLower) ||
-      otherUser.email?.toLowerCase().includes(searchLower) ||
-      chat.latestMessage?.content?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Memoize filtered conversations
+  const filteredConversations = React.useMemo(() => {
+    return conversations.filter((chat) => {
+      if (!searchQuery) return true;
+      const chatName = chat.isGroupChat 
+        ? chat.chatName 
+        : chat.users.find(u => u._id !== userData?.data?._id)?.username || "";
+      return chatName.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  }, [conversations, searchQuery, userData?.data?._id]);
 
   if (!userData) {
     return null;
@@ -133,8 +113,16 @@ function Conversations() {
 
   if (loading) {
     return (
-      <div className={"loading" + (lightTheme ? "" : " dark")}>
-        Loading conversations...
+      <div className={"conversation-container" + (lightTheme ? "" : " dark")}>
+        {[...Array(5)].map((_, index) => (
+          <div key={index} className="conversation-skeleton">
+            <div className="conversation-avatar-skeleton skeleton"></div>
+            <div className="conversation-content-skeleton">
+              <div className="conversation-title-skeleton skeleton"></div>
+              <div className="conversation-message-skeleton skeleton"></div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -167,13 +155,23 @@ function Conversations() {
             </p>
           </div>
         ) : (
-          filteredConversations.map((chat) => (
-            <ConversationItem
-              key={chat._id}
-              props={chat}
-              isActive={false}
-            />
-          ))
+          filteredConversations.map((chat) => {
+            const otherUser = chat.users.find(u => u._id !== userData?.data?._id);
+            const displayName = chat.isGroupChat ? chat.chatName : otherUser?.username;
+            
+            return (
+              <div
+                key={chat._id}
+                className={"conversation-item" + (lightTheme ? "" : " dark")}
+                onClick={() => handleConversationClick(chat._id, displayName)}
+              >
+                <ConversationItem
+                  props={chat}
+                  isActive={false}
+                />
+              </div>
+            );
+          })
         )}
       </motion.div>
       <div className={"bottom-bar" + (lightTheme ? "" : " dark")}>

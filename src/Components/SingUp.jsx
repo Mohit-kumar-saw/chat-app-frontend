@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import image from "../image/img.png"
 import { Alert, Button, TextField, Typography, Box } from '@mui/material'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -35,9 +34,6 @@ const SingUp = () => {
   
     return (
       <div className="login-container">
-        <div className="image-container">
-          <img src={image} alt="Welcome" className="welcome-logo" />
-        </div>
         <div className="login-box">
           <Typography variant="h4" className="login-text">
             Create Account
@@ -78,10 +74,10 @@ const SingUp = () => {
             size="small"
           />
           {signUpStatus.message && !alert && (
-            <Alert severity="error" sx={{ mt: 1 }}>{signUpStatus.message}</Alert>
+            <Alert severity="error">{signUpStatus.message}</Alert>
           )}
           {alert && (
-            <Alert severity="success" sx={{ mt: 1 }}>{signUpStatus.message}</Alert>
+            <Alert severity="success">{signUpStatus.message}</Alert>
           )}
           <Button 
             variant="outlined" 
@@ -89,11 +85,10 @@ const SingUp = () => {
             onClick={signUpHandler} 
             disabled={loading}
             fullWidth
-            size="medium"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </Button>
-          <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Typography variant="body2" color="textSecondary">
               Already have an Account?{" "}
               <a href="/" className="hyper">Sign In</a>

@@ -7,6 +7,7 @@ import Users from "./Components/Users";
 import CreateGroups from "./Components/CreateGroups";
 import Groups from "./Components/Groups";
 import Login from "./Components/Login";
+import SignUp from "./Components/SignUp";
 import { Provider } from "react-redux";
 import store from "./app/store";
 
@@ -17,6 +18,7 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route path="app" element={<MainContainer />}>
               <Route path="welcome" element={<Welcome />} />
               <Route path="chat/:_id" element={<ChatArea />} />

@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import "./myStyles.css";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleTheme } from "../Features/themeSlice";
 import axios from "axios";
 import { BASE_URL } from "../Url";
+import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Chip, Avatar, CircularProgress } from "@mui/material";
+import { myContext } from "./MainContainer";
+import Users from "./Users";
+import Conversations from "./Conversations";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 // Modern Material Icons
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
@@ -14,22 +20,25 @@ import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import EmailIcon from '@mui/icons-material/Email';
-import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Chip, Avatar, CircularProgress } from "@mui/material";
-
-import Users from "./Users";
-import Conversations from "./Conversations";
 
 function Sidebar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const lightTheme = useSelector((state) => state.themeKey);
+  const { 
+    refresh, 
+    setRefresh, 
+    searchQuery, 
+    setSearchQuery, 
+    currentView, 
+    setCurrentView,
+    getSearchPlaceholder 
+  } = useContext(myContext);
   const [activeTab, setActiveTab] = useState("conversations");
-  const [searchQuery, setSearchQuery] = useState("");
   const [openGroupModal, setOpenGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [searchUser, setSearchUser] = useState("");
@@ -44,6 +53,7 @@ function Sidebar() {
     email: "",
     bio: ""
   });
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
 
   const userData = React.useMemo(() => {
     const data = localStorage.getItem("userData");
@@ -64,6 +74,26 @@ function Sidebar() {
       });
     }
   }, [userData]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Add new effect for handling visibility
+  useEffect(() => {
+    const sidebar = document.querySelector('.sidebar-container');
+    const chatArea = document.querySelector('.chatArea-container');
+    
+    if (sidebar && chatArea) {
+      sidebar.classList.remove('hidden');
+      chatArea.classList.remove('visible');
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("userData");
@@ -219,14 +249,31 @@ function Sidebar() {
     }
   };
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleConversationClick = (conversationId, displayName) => {
+    if (isMobileView) {
+      const sidebar = document.querySelector('.sidebar-container');
+      const chatArea = document.querySelector('.chatArea-container');
+      
+      if (sidebar && chatArea) {
+        sidebar.classList.add('hidden');
+        chatArea.classList.add('visible');
+      }
+    }
+    navigate(`/app/chat/${conversationId}&${displayName}`);
+  };
+
   return (
     <div className={"sidebar-container" + (lightTheme ? "" : " dark")}>
       <div className={"sb-header" + (lightTheme ? "" : " dark")}>
         <div className="other-icons"
         >
-          <div className="logo">
-            <div className="logo-text">
-              Chat<span className="logo-sphere">Sphere</span>
+          <div className="logo" onClick={() => navigate("/app")} style={{ cursor: 'pointer' }}>
+            <div className="logo-text" onClick={() => navigate("/app")}>
+              <span>Chat</span><span className="logo-sphere">Sphere</span>
             </div>
           </div>
 
@@ -260,21 +307,43 @@ function Sidebar() {
         </div>
       </div>
 
-      <div className={"sb-search" + (lightTheme ? "" : " dark")}>
-        <SearchRoundedIcon className="search-icon" />
-        <input
-          placeholder="Search conversations..."
-          className={"search-box" + (lightTheme ? "" : " dark")}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className={"search-container" + (lightTheme ? "" : " dark")}>
+        <div className="search-box-container">
+          <div className="search-icon">
+            <SearchIcon />
+          </div>
+          <input
+            type="text"
+            placeholder={activeTab === "users" ? "Search users..." : "Search conversations..."}
+            className={"search-box" + (lightTheme ? "" : " dark")}
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+        </div>
+        {activeTab === "users" && (
+          <IconButton
+            className={"refresh-button" + (lightTheme ? "" : " dark")}
+            onClick={() => setRefresh(!refresh)}
+          >
+            <RefreshIcon />
+          </IconButton>
+        )}
       </div>
 
       <div className={"sb-content" + (lightTheme ? "" : " dark")}>
         {activeTab === "conversations" ? (
-          <Conversations searchQuery={searchQuery} />
+          <Conversations 
+            searchQuery={searchQuery} 
+            onConversationClick={handleConversationClick}
+          />
         ) : (
-          <Users onSelectUser={() => setActiveTab("conversations")} searchQuery={searchQuery} />
+          <Users 
+            onSelectUser={(userId, username) => {
+              handleConversationClick(userId, username);
+              setActiveTab("conversations");
+            }} 
+            searchQuery={searchQuery} 
+          />
         )}
       </div>
 

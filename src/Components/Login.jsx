@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import logo from "../image/img.png";
-import { Backdrop, Button, CircularProgress, TextField, Typography, Box } from "@mui/material";
+import { Backdrop, Button, CircularProgress, TextField, Alert } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Toaster from "./Toaster";
 import { BASE_URL } from "../Url";
+import { AuthIllustration, LoginIcon } from './AuthIllustration';
 
 function Login() {
-  const [showlogin, setShowLogin] = useState(true);
-  const [data, setData] = useState({ username: "", email: "", password: "" });
+  const [data, setData] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [logInStatus, setLogInStatus] = useState("");
-  const [signInStatus, setSignInStatus] = useState("");
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState('error');
 
   const navigate = useNavigate();
 
@@ -19,130 +18,53 @@ function Login() {
     setData({ ...data, [e.target.name]: e.target.value });
   };
 
-  const loginHandler = async () => {
-    setLoading(true);
+  const loginHandler = async (e) => {
+    e.preventDefault();
+    
+    if (!data.username || !data.password) {
+      setAlertMessage('Please fill all the fields');
+      setAlertSeverity('error');
+      return;
+    }
+
     try {
-      if (!data.username?.trim()) {
-        setLogInStatus({
-          msg: "Username is required",
-          key: Math.random(),
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!data.password) {
-        setLogInStatus({
-          msg: "Password is required",
-          key: Math.random(),
-        });
-        setLoading(false);
-        return;
-      }
-
+      setLoading(true);
       const config = {
         headers: {
           "Content-type": "application/json",
         },
       };
 
+      const requestData = {
+        username: data.username.trim(),
+        password: data.password
+      };
+
+      console.log('Sending login request:', requestData);
+      
       const response = await axios.post(
         `${BASE_URL}/user/login`,
-        {
-          username: data.username.trim(),
-          password: data.password
-        },
+        requestData,
         config
       );
 
-      if (response.data?.success) {
-        setLogInStatus({ msg: "Login successful!", key: Math.random() });
-        localStorage.setItem("userData", JSON.stringify(response.data));
-        navigate("/app/welcome");
-      } else {
-        throw new Error(response.data?.message || "Login failed");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Invalid username or password";
-      setLogInStatus({
-        msg: errorMessage,
-        key: Math.random(),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signUpHandler = async () => {
-    setLoading(true);
-    try {
-      if (!data.username?.trim()) {
-        setSignInStatus({
-          msg: "Username is required",
-          key: Math.random(),
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!data.email?.trim()) {
-        setSignInStatus({
-          msg: "Email is required",
-          key: Math.random(),
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!data.password) {
-        setSignInStatus({
-          msg: "Password is required",
-          key: Math.random(),
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (data.password.length < 6) {
-        setSignInStatus({
-          msg: "Password must be at least 6 characters long",
-          key: Math.random(),
-        });
-        setLoading(false);
-        return;
-      }
-
-      const config = {
-        headers: {
-          "Content-type": "application/json",
-        },
-      };
-
-      const response = await axios.post(
-        `${BASE_URL}/user/register`,
-        {
-          username: data.username.trim(),
-          email: data.email.trim(),
-          password: data.password
-        },
-        config
-      );
+      console.log('Login response:', response.data);
 
       if (response.data?.success) {
-        setSignInStatus({ msg: "Registration successful!", key: Math.random() });
-        localStorage.setItem("userData", JSON.stringify(response.data));
+        const userData = {
+          data: response.data.data
+        };
+        localStorage.setItem("userData", JSON.stringify(userData));
+        setAlertMessage('Login successful!');
+        setAlertSeverity('success');
         navigate("/app/welcome");
       } else {
-        throw new Error(response.data?.message || "Registration failed");
+        throw new Error(response.data?.message || 'Login failed');
       }
     } catch (error) {
-      console.error("Registration error:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Registration failed. Please try again.";
-      setSignInStatus({
-        msg: errorMessage,
-        key: Math.random(),
-      });
+      console.error('Login error:', error.response?.data || error.message);
+      setAlertMessage(error.response?.data?.message || 'Invalid username or password');
+      setAlertSeverity('error');
     } finally {
       setLoading(false);
     }
@@ -154,149 +76,93 @@ function Login() {
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={loading}
       >
-        <CircularProgress color="secondary" />
+        <CircularProgress color="primary" />
       </Backdrop>
-      <div className="login-container">
-        <div className="image-container">
-          <img src={logo} alt="Logo" className="welcome-logo" />
-        </div>
-        {showlogin ? (
-          <div className="login-box">
-            <Typography variant="h4" className="login-text">
-              Welcome Back
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2, textAlign: 'center' }}>
-              Sign in to continue to ChatSphere
-            </Typography>
+      
+      <div className="auth-container">
+        <div className="auth-box">
+          <div className="auth-header">
+            <LoginIcon />
+            <h1>Welcome back!</h1>
+            <p className="auth-subtitle">Please enter your details to sign in</p>
+          </div>
+
+          {alertMessage && (
+            <Alert 
+              severity={alertSeverity}
+              onClose={() => setAlertMessage('')}
+              sx={{ mb: 2, width: '100%' }}
+            >
+              {alertMessage}
+            </Alert>
+          )}
+
+          <form onSubmit={loginHandler} className="auth-form">
             <TextField
-              onChange={changeHandler}
-              className="input"
               label="Username or Email"
-              variant="outlined"
-              color="secondary"
-              name="username"
+              type="text"
               value={data.username}
+              onChange={changeHandler}
+              name="username"
               fullWidth
-              size="small"
-              onKeyDown={(event) => {
-                if (event.code === "Enter") {
-                  loginHandler();
+              required
+              sx={{ mb: 2 }}
+              InputProps={{
+                sx: {
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--bg-secondary)'
                 }
               }}
             />
+            
             <TextField
-              onChange={changeHandler}
-              className="input"
               label="Password"
               type="password"
-              autoComplete="current-password"
-              color="secondary"
-              name="password"
               value={data.password}
+              onChange={changeHandler}
+              name="password"
               fullWidth
-              size="small"
-              onKeyDown={(event) => {
-                if (event.code === "Enter") {
-                  loginHandler();
+              required
+              sx={{ mb: 3 }}
+              InputProps={{
+                sx: {
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--bg-secondary)'
                 }
               }}
             />
+            
             <Button
-              variant="outlined"
-              color="secondary"
-              onClick={loginHandler}
+              type="submit"
+              variant="contained"
+              fullWidth
               disabled={loading}
-              fullWidth
-              size="medium"
+              sx={{
+                py: 1.5,
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                backgroundColor: 'var(--primary-color)',
+                '&:hover': {
+                  backgroundColor: 'var(--primary-dark)',
+                }
+              }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? 'Signing in...' : 'Sign in'}
             </Button>
-            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
-              <Typography variant="body2" color="textSecondary">
-                Don't have an Account?{" "}
-                <span
-                  className="hyper"
-                  onClick={() => {
-                    setShowLogin(false);
-                    setData({ username: "", email: "", password: "" });
-                  }}
-                >
-                  Sign Up
-                </span>
-              </Typography>
-            </Box>
-          </div>
-        ) : (
-          <div className="login-box">
-            <Typography variant="h4" className="login-text">
-              Create Account
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2, textAlign: 'center' }}>
-              Join ChatSphere today
-            </Typography>
-            <TextField
-              onChange={changeHandler}
-              className="input"
-              label="Username"
-              variant="outlined"
-              color="secondary"
-              name="username"
-              value={data.username}
-              fullWidth
-              size="small"
-            />
-            <TextField
-              onChange={changeHandler}
-              className="input"
-              label="Email"
-              variant="outlined"
-              color="secondary"
-              name="email"
-              value={data.email}
-              fullWidth
-              size="small"
-            />
-            <TextField
-              onChange={changeHandler}
-              className="input"
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-              color="secondary"
-              name="password"
-              value={data.password}
-              fullWidth
-              size="small"
-            />
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={signUpHandler}
-              disabled={loading}
-              fullWidth
-              size="medium"
-            >
-              {loading ? "Creating Account..." : "Create Account"}
-            </Button>
-            <Box sx={{ mt: 1.5, textAlign: 'center' }}>
-              <Typography variant="body2" color="textSecondary">
-                Already have an Account?{" "}
-                <span
-                  className="hyper"
-                  onClick={() => {
-                    setShowLogin(true);
-                    setData({ username: "", email: "", password: "" });
-                  }}
-                >
-                  Sign In
-                </span>
-              </Typography>
-            </Box>
-          </div>
-        )}
+          </form>
+
+          <p className="auth-footer">
+            Don't have an account?{' '}
+            <a href="/signup" className="auth-link">
+              Sign up
+            </a>
+          </p>
+        </div>
       </div>
-      {logInStatus && <Toaster key={logInStatus.key} message={logInStatus.msg} />}
-      {signInStatus && <Toaster key={signInStatus.key} message={signInStatus.msg} />}
+
+      {alertMessage && <Toaster key={Date.now()} message={alertMessage} />}
     </>
   );
 }

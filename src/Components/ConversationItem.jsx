@@ -40,8 +40,9 @@ const ConversationItem = ({ props, isActive }) => {
     <motion.div
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
-      className={'conversation-item' + (lightTheme ? '' : ' dark') + (isActive ? ' active' : '')}
+      className={'conversation-item-content' + (lightTheme ? '' : ' dark') + (isActive ? ' active' : '')}
       onClick={handleNavigateToChat}
+      style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', cursor: 'pointer', width: '100%' }}
     >
       <div className={'con-icon' + (lightTheme ? '' : ' dark')}>
         {initial}
